@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: ./clinicaltrials-mcp
+      dockerfile: Dockerfile
+    container_name: clinicaltrials-mcp
+    ports:
+      - "8000:8000"
+    environment:
+      - MCP_SERVER_HOST=0.0.0.0
+      - MCP_SERVER_PORT=8000
+      - LOG_LEVEL=INFO
+    env_file:
+      - ./clinicaltrials-mcp/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trialtalk-network
+
+  agent:
+    build:
+      context: ./clinicaltrial-agent
+      dockerfile: Dockerfile
+    container_name: clinicaltrial-agent
+    ports:
+      - "8001:8001"
+    environment:
+      - AGENT_API_HOST=0.0.0.0
+      - AGENT_API_PORT=8001
+      - MCP_SERVER_URL=http://mcp-server:8000
+      - LOG_LEVEL=INFO
+    env_file:
+      - ./clinicaltrial-agent/.env
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trialtalk-network
+
+  ui:
+    build:
+      context: ./clinicaltrial-ui
+      dockerfile: Dockerfile
+    container_name: clinicaltrial-ui
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - AGENT_API_URL=http://agent:8001
+    env_file:
+      - ./clinicaltrial-ui/.env
+    depends_on:
+      agent:
+        condition: service_healthy
+    networks:
+      - trialtalk-network
+
+networks:
+  trialtalk-network:
+    driver: bridge
