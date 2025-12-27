@@ -35,29 +35,28 @@ async def search_clinical_trials(
     await ctx.info(f"Searching clinical trials with condition='{condition}', intervention='{intervention}'")
     
     try:
-        async with api_client:
-            result = await api_client.search_studies(
-                query_cond=condition,
-                query_intr=intervention,
-                query_locn=location,
-                query_term=other_terms,
-                filter_overall_status=status,
-                page_size=page_size,
-                page_token=page_token,
-                countTotal=True if not page_token else False  # Only count on first page
-            )
-            
-            study_count = len(result.get("studies", []))
-            total_count = result.get("totalCount", "unknown")
-            
-            await ctx.info(f"Found {study_count} studies (total: {total_count})")
-            
-            return {
-                "studies": result.get("studies", []),
-                "totalCount": total_count,
-                "nextPageToken": result.get("nextPageToken"),
-                "hasMore": "nextPageToken" in result
-            }
+        result = await api_client.search_studies(
+            query_cond=condition,
+            query_intr=intervention,
+            query_locn=location,
+            query_term=other_terms,
+            filter_overall_status=status,
+            page_size=page_size,
+            page_token=page_token,
+            countTotal=True if not page_token else False  # Only count on first page
+        )
+        
+        study_count = len(result.get("studies", []))
+        total_count = result.get("totalCount", "unknown")
+        
+        await ctx.info(f"Found {study_count} studies (total: {total_count})")
+        
+        return {
+            "studies": result.get("studies", []),
+            "totalCount": total_count,
+            "nextPageToken": result.get("nextPageToken"),
+            "hasMore": "nextPageToken" in result
+        }
             
     except Exception as e:
         await ctx.error(f"Error searching clinical trials: {str(e)}")

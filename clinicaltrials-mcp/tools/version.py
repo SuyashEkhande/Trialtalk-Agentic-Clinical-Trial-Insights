@@ -18,10 +18,9 @@ async def get_api_version(ctx: Context) -> dict:
     await ctx.info("Retrieving API version information")
     
     try:
-        async with api_client:
-            result = await api_client.get_version()
-            await ctx.info(f"API Version: {result.get('apiVersion')}, Data: {result.get('dataTimestamp')}")
-            return result
+        result = await api_client.get_version()
+        await ctx.info(f"API Version: {result.get('apiVersion')}, Data: {result.get('dataTimestamp')}")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving version info: {str(e)}")

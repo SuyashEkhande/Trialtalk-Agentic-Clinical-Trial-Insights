@@ -29,16 +29,16 @@ async def get_study_details(
     await ctx.info(f"Retrieving details for study {nct_id}")
     
     try:
-        async with api_client:
-            result = await api_client.get_study(
-                nct_id=nct_id,
-                fields=fields
-            )
-            
-            await ctx.info(f"Successfully retrieved study {nct_id}")
-            
-            return result
-            
+        # Client now manages its own session, no need for'async with' here
+        result = await api_client.get_study(
+            nct_id=nct_id,
+            fields=fields
+        )
+        
+        await ctx.info(f"Successfully retrieved study {nct_id}")
+        
+        return result
+        
     except Exception as e:
         await ctx.error(f"Error retrieving study {nct_id}: {str(e)}")
         raise

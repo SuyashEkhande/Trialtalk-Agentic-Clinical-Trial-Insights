@@ -22,10 +22,9 @@ async def get_field_metadata(ctx: Context) -> dict:
     await ctx.info("Retrieving field metadata")
     
     try:
-        async with api_client:
-            result = await api_client.get_metadata()
-            await ctx.info(f"Retrieved metadata for {len(result)} fields")
-            return result
+        result = await api_client.get_metadata()
+        await ctx.info(f"Retrieved metadata for {len(result)} fields")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving field metadata: {str(e)}")
@@ -47,10 +46,9 @@ async def get_search_areas(ctx: Context) -> dict:
     await ctx.info("Retrieving search areas")
     
     try:
-        async with api_client:
-            result = await api_client.get_search_areas()
-            await ctx.info("Retrieved search area definitions")
-            return result
+        result = await api_client.get_search_areas()
+        await ctx.info("Retrieved search area definitions")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving search areas: {str(e)}")
@@ -73,10 +71,9 @@ async def get_enum_values(ctx: Context) -> dict:
     await ctx.info("Retrieving enum values")
     
     try:
-        async with api_client:
-            result = await api_client.get_enums()
-            await ctx.info(f"Retrieved {len(result)} enum types")
-            return result
+        result = await api_client.get_enums()
+        await ctx.info(f"Retrieved {len(result)} enum types")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving enum values: {str(e)}")

@@ -14,71 +14,97 @@ class ClinicalTrialsAPIClient:
         """Initialize the API client."""
         self.base_url = settings.clinical_trials_api_base_url
         self.timeout = httpx.Timeout(settings.http_timeout_seconds)
-        self.client: Optional[httpx.AsyncClient] = None
-        
-    async def __aenter__(self):
-        """Context manager entry."""
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=self.timeout,
-            follow_redirects=True,
-            headers={
-                "User-Agent": "TrialTalk-MCP-Server/1.0",
-                "Accept": "application/json"
-            }
+        self.limits = httpx.Limits(
+            max_keepalive_connections=5,
+            max_connections=20,
+            keepalive_expiry=30.0
         )
-        return self
-    
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        if self.client:
-            await self.client.aclose()
+        self._client: Optional[httpx.AsyncClient] = None
+        
+    @property
+    def client(self) -> httpx.AsyncClient:
+        """Get or create the internal httpx client."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=self.timeout,
+                limits=self.limits,
+                follow_redirects=True,
+                http2=False,  # Disable HTTP/2 to avoid ReadError/StreamDrops
+                http1=True,   # Explicitly use HTTP/1.1
+                headers={
+                    "User-Agent": "TrialTalk-MCP-Server/1.0",
+                    "Accept": "application/json",
+                    "Connection": "keep-alive"
+                }
+            )
+        return self._client
+
+    async def aclose(self):
+        """Close the internal client if it exists."""
+        if self._client:
+            try:
+                await self._client.aclose()
+            except Exception as e:
+                logger.error(f"Error closing client: {e}")
+            self._client = None
     
     async def get(
         self,
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
+        retries: int = 3,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Make a GET request to the ClinicalTrials.gov API.
+        Make a GET request to the ClinicalTrials.gov API with retries.
         
         Args:
             endpoint: API endpoint path (e.g., '/studies')
             params: Query parameters
+            retries: Number of retry attempts for protocol errors
             **kwargs: Additional httpx request arguments
             
         Returns:
             JSON response as dictionary
-            
-        Raises:
-            httpx.HTTPError: On HTTP errors
         """
-        if not self.client:
-            raise RuntimeError("Client not initialized. Use async context manager.")
+        last_error = None
         
-        try:
-            logger.info(f"GET {endpoint} with params: {params}")
-            response = await self.client.get(endpoint, params=params, **kwargs)
-            response.raise_for_status()
-            
-            # Handle different response types
-            content_type = response.headers.get("content-type", "")
-            if "application/json" in content_type:
-                return response.json()
-            else:
-                # For CSV or other formats, return raw text
-                return {"content": response.text, "content_type": content_type}
+        for attempt in range(retries):
+            try:
+                if attempt > 0:
+                    logger.info(f"Retry attempt {attempt + 1}/{retries} for {endpoint}")
                 
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error {e.response.status_code}: {e.response.text}")
-            raise
-        except httpx.RequestError as e:
-            logger.error(f"Request error: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            raise
+                response = await self.client.get(endpoint, params=params, **kwargs)
+                response.raise_for_status()
+                
+                # Handle different response types
+                content_type = response.headers.get("content-type", "")
+                if "application/json" in content_type:
+                    return response.json()
+                else:
+                    return {"content": response.text, "content_type": content_type}
+                    
+            except (httpx.ReadError, httpx.RemoteProtocolError, httpx.WriteError) as e:
+                last_error = e
+                logger.warning(f"Protocol error '{type(e).__name__}' on attempt {attempt + 1}: {e}")
+                # Force client recreate on next attempt
+                await self.aclose()
+                if attempt == retries - 1:
+                    raise
+                continue
+            except httpx.HTTPStatusError as e:
+                logger.error(f"HTTP error {e.response.status_code} for {endpoint}: {e.response.text}")
+                raise
+            except httpx.RequestError as e:
+                logger.error(f"Request error for {endpoint}: {str(e)}")
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error for {endpoint}: {str(e)}")
+                raise
+        
+        if last_error:
+            raise last_error
     
     async def search_studies(
         self,
@@ -93,27 +119,9 @@ class ClinicalTrialsAPIClient:
         fields: Optional[list] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Search clinical trials with various filters.
-        
-        Args:
-            query_cond: Condition/disease query
-            query_term: Other terms query
-            query_locn: Location query
-            query_intr: Intervention/treatment query
-            filter_overall_status: List of status filters
-            filter_geo: Geographic filter (e.g., "distance(39.0,-77.1,50mi)")
-            page_size: Number of results per page
-            page_token: Token for next page
-            fields: List of fields to return
-            **kwargs: Additional query parameters
-            
-        Returns:
-            Paginated study results
-        """
+        """Search clinical trials with various filters."""
         params = {}
         
-        # Add query parameters
         if query_cond:
             params["query.cond"] = query_cond
         if query_term:
@@ -123,22 +131,18 @@ class ClinicalTrialsAPIClient:
         if query_intr:
             params["query.intr"] = query_intr
             
-        # Add filters
         if filter_overall_status:
             params["filter.overallStatus"] = "|".join(filter_overall_status)
         if filter_geo:
             params["filter.geo"] = filter_geo
             
-        # Add pagination
         params["pageSize"] = page_size
         if page_token:
             params["pageToken"] = page_token
             
-        # Add field selection
         if fields:
             params["fields"] = "|".join(fields)
             
-        # Merge additional parameters
         params.update(kwargs)
         
         return await self.get("/studies", params=params)
@@ -149,17 +153,7 @@ class ClinicalTrialsAPIClient:
         fields: Optional[list] = None,
         format: str = "json"
     ) -> Dict[str, Any]:
-        """
-        Get detailed information for a single study.
-        
-        Args:
-            nct_id: NCT ID of the study
-            fields: List of fields to return
-            format: Response format (json, csv, etc.)
-            
-        Returns:
-            Study details
-        """
+        """Get detailed information for a single study."""
         params = {"format": format}
         if fields:
             params["fields"] = "|".join(fields)
@@ -187,16 +181,7 @@ class ClinicalTrialsAPIClient:
         types: Optional[list] = None,
         fields: Optional[list] = None
     ) -> Dict[str, Any]:
-        """
-        Get field value statistics.
-        
-        Args:
-            types: Field types to filter by (e.g., ['ENUM', 'BOOLEAN'])
-            fields: Specific fields to get stats for
-            
-        Returns:
-            Field value statistics
-        """
+        """Get field value statistics."""
         params = {}
         if types:
             params["types"] = "|".join(types)

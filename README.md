@@ -1,255 +1,119 @@
-# Trialtalk - Clinical Trial Conversational AI System
+# TrialTalk - Agentic Clinical Trial Intelligence System
 
-A modular clinical trial information system powered by FastMCP, LangChain, and Streamlit, leveraging the ClinicalTrials.gov API v2 and Google Gemini 2.5 Flash.
+### 🎥 Live Demo
+<video src=".screenshots/demo.mp4" width="100%" controls></video>
 
-## Architecture
+A modular **Agentic AI System** designed to revolutionize how researchers and patients access clinical trial data. Powered by **Model Context Protocol (MCP)**, **LangGraph**, and **Google Gemini 2.5**, TrialTalk autonomously navigates the vast registry of [ClinicalTrials.gov](https://clinicaltrials.gov/) to provide evidence-based insights, comparative analysis, and real-time eligibility assessments.
 
-This system consists of three independent services:
+> **"Built with ❤️ by Suyash Ekhande"**
 
-### 1. **clinicaltrials-mcp** (Port 8000)
-FastMCP server exposing ClinicalTrials.gov API capabilities via 8 comprehensive tools
-- Streamable HTTP transport for multi-client support
-- Tools, resources, and prompts for clinical trial data access
-- Custom middleware for logging and rate limiting
+---
 
-### 2. **clinicaltrial-agent** (Port 8001)
-LangChain-powered conversational agent with advanced reasoning
-- LangGraph ReAct agent with Gemini 2.5 Flash integration
-- Dynamic MCP tool loading and orchestration
-- Memory management and conversation history
-- FastAPI service with streaming support
+## 🚀 Key Highlights
 
-### 3. **clinicaltrial-ui** (Port 8501)
-Streamlit web interface with real-time progress tracking
-- Interactive chat interface with streaming responses
-- Real-time progress indicators and status tracking
-- Study data visualization and analytics
-- Session management and conversation history
+*   **Agentic Architecture**: Implements a **ReAct** (Reasoning + Acting) loop where the AI autonomously decides which tools to use, filters data, and synthesizes answers.
+*   **Model Context Protocol (MCP)**: Utilizes the emerging MCP standard to decouple the LLM from the data tools, creating a scalable and interchangeable tool ecosystem.
+*   **Production-Ready Tech Stack**: Built with **Next.js 15**, **FastAPI**, **FastMCP**, **LangGraph**, **LangChain**, **Gemini 2.5 Flash**, **Shadcn UI**.
 
-## Quick Start
+
+---
+
+## 🏗️ System Architecture
+
+Trialtalk is composed of three decoupled microservices working in harmony:
+
+### 1. **ClinicalTrials MCP Server** (Python/FastMCP)
+*   **Role**: The "Hands" of the system.
+*   **Tech**: FastMCP, Pydantic, HTTPX.
+*   **Function**: Exposes 8+ granular tools to interact with the ClinicalTrials.gov API v2. It handles rate limiting, error retries, and data validation.
+*   **Key Tools**: `search_clinical_trials`, `get_study_details`, `get_statistics`.
+![MCP Architecture](.screenshots/mcp.png)
+
+### 2. **ClinicalTrial Agent** (Python/LangGraph)
+*   **Role**: The "Brain" of the system.
+*   **Tech**: LangChain, LangGraph, Gemini 2.5 Flash, FastAPI.
+*   **Function**:
+    *   Maintains conversation memory and state.
+    *   Executes the ReAct loop to solve complex multi-step queries.
+    *   Streams thoughts and final answers via Server-Sent Events (SSE).
+![Agent FastAPI](.screenshots/agent_fastapi.png)
+
+### 3. **ClinicalTrial UI** (Next.js/React)
+*   **Role**: The "Face" of the system.
+*   **Tech**: Next.js 15, TypeScript, TailwindCSS, Shadcn UI, Framer Motion.
+*   **Function**:
+    *   Modern, responsive chat interface.
+    *   Renders Markdown and structured data tables.
+    
+
+---
+
+## 🛠️ Tech Stack & Tools
+
+*   **AI & LLM**: Google Gemini 2.5 Flash, LangChain, LangGraph.
+*   **Protocol**: Model Context Protocol (MCP), **FastMCP**.
+*   **Backend**: Python 3.12, FastAPI, Uvicorn.
+*   **Frontend**: Next.js (App Router), React 19, Lucide Icons.
+*   **Styling**: Tailwind CSS, Shadcn UI.
+*   **Data Source**: ClinicalTrials.gov API v2.
+
+---
+
+## ⚡ Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- Docker & Docker Compose (optional, for containerized deployment)
-- Gemini API key from Google AI Studio
+*   Node.js 20+
+*   Python 3.12+
+*   Gemini API Key (Google AI Studio)
 
-### Environment Setup
-
-1. **Clone and navigate to the repository**
+### 1. Clone the Repository
 ```bash
+git clone https://github.com/yourusername/Trialtalk-Agentic-Clinical-Trial-Insights.git
 cd Trialtalk-Agentic-Clinical-Trial-Insights
 ```
 
-2. **Set up environment variables** for each service:
-
-```bash
-# MCP Server
-cp clinicaltrials-mcp/.env.example clinicaltrials-mcp/.env
-
-# Agent
-cp clinicaltrial-agent/.env.example clinicaltrial-agent/.env
-# Edit clinicaltrial-agent/.env and add your GEMINI_API_KEY
-
-# UI
-cp clinicaltrial-ui/.env.example clinicaltrial-ui/.env
-```
-
-### Option 1: Docker Compose (Recommended)
-
-```bash
-docker-compose up
-```
-
-Access the UI at http://localhost:8501
-
-### Option 2: Manual Setup
-
-**Terminal 1 - MCP Server:**
+### 2. Setup MCP Server (Port 8000)
+The MCP server handles the connection to ClinicalTrials.gov.
 ```bash
 cd clinicaltrials-mcp
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip3 install -r requirements.txt
-python3 server.py
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # No API keys needed for this part
+python server.py
 ```
 
-**Terminal 2 - Agent:**
+### 3. Setup Agent Service (Port 8001)
+The Agent connects to the MCP server and coordinates the logic.
 ```bash
-cd clinicaltrial-agent
+cd ../clinicaltrial-agent
 python3 -m venv venv
 source venv/bin/activate
-pip3 install -r requirements.txt
-python3 -m api.main
+pip install -r requirements.txt
+cp .env.example .env
+# ⚠️ Add your GEMINI_API_KEY to .env
+python api/main.py
 ```
 
-**Terminal 3 - UI:**
+### 4. Setup Frontend UI (Port 3000)
+The Next.js application.
 ```bash
-cd clinicaltrial-ui
-python3 -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-streamlit run app.py
+cd ../clinicaltrials-ui
+npm install
+npm run dev
 ```
 
-## Usage Examples
+Visit **http://localhost:3000** to interact with the agent!
 
-### Basic Search
-```
-User: "Find active clinical trials for diabetes in California"
-```
+---
 
-The system will:
-1. Parse your natural language query
-2. Call the appropriate MCP tools
-3. Stream results in real-time
-4. Display progress of each step in the UI
+## 💡 Usage Scenarios
 
-### Complex Queries
-```
-User: "Compare phase 3 lung cancer trials by enrollment size"
-```
+### 🔬 Feasibility Research
+> *"Find Phase 3 lung cancer trials in New York recruiting patients with EGFR mutations."*
+The agent will filter by phase, condition, location, and recruitment status.
 
-The agent uses multiple tools:
-- Searches for lung cancer trials
-- Filters by phase
-- Analyzes enrollment data
-- Provides comparative summary
-
-### Follow-up Questions
-```
-User: "Show me details of the first study"
-User: "What are the eligibility criteria?"
-```
-
-Context is maintained across the conversation.
-
-## API Documentation
-
-### MCP Server Tools (8 total)
-
-1. **search_clinical_trials** - Search studies by multiple criteria
-2. **get_study_details** - Retrieve full study information by NCT ID
-3. **get_field_metadata** - List available data fields
-4. **get_search_areas** - Get search area definitions
-5. **get_enum_values** - List valid enumeration values
-6. **get_study_size_stats** - Study JSON size statistics
-7. **get_field_value_stats** - Field value distributions
-8. **get_api_version** - API version information
-
-### Agent API Endpoints
-
-- `POST /query` - Submit a query
-- `GET /stream/{session_id}` - SSE streaming endpoint
-- `GET /sessions/{session_id}` - Get conversation history
-- `DELETE /sessions/{session_id}` - Clear session
-
-## Development
-
-### Running Tests
-
-```bash
-# MCP Server tests
-cd clinicaltrials-mcp
-pytest tests/ -v --cov=.
-
-# Agent tests
-cd clinicaltrial-agent
-pytest tests/ -v
-
-# Integration tests
-docker-compose up -d
-pytest tests/test_integration.py -v
-docker-compose down
-```
-
-### Project Structure
-
-```
-Trialtalk-Agentic-Clinical-Trial-Insights/
-├── clinicaltrials-mcp/          # FastMCP server
-│   ├── tools/                   # MCP tools (8 total)
-│   ├── resources/               # Static resources
-│   ├── prompts/                 # Query building prompts
-│   ├── middleware/              # Custom middleware
-│   ├── client_api/              # HTTP client for ClinicalTrials.gov
-│   ├── server.py                # Main server entry point
-│   └── config.py                # Configuration
-├── clinicaltrial-agent/         # LangChain agent
-│   ├── llm/                     # Gemini integration
-│   ├── tools/                   # MCP tool loader
-│   ├── memory/                  # Conversation management
-│   ├── callbacks/               # Progress tracking
-│   ├── chains/                  # Specialized chains
-│   ├── api/                     # FastAPI service
-│   └── agent.py                 # Main agent
-├── clinicaltrial-ui/            # Streamlit UI
-│   ├── components/              # UI components
-│   ├── client/                  # Agent API client
-│   ├── utils/                   # Utilities
-│   └── app.py                   # Main Streamlit app
-├── tests/                       # Integration tests
-├── .docs/                       # OpenAPI specification
-├── docker-compose.yml           # Multi-service orchestration
-└── README.md                    # This file
-```
-
-## Framework Features Used
-
-### FastMCP
-- ✅ Streamable HTTP Transport
-- ✅ Tools, Resources, Prompts
-- ✅ Context Injection
-- ✅ Custom Middleware
-- ✅ Progress Reporting
-
-### LangChain
-- ✅ LangGraph ReAct Agent
-- ✅ Streaming & Callbacks
-- ✅ Tool Integration
-- ✅ Memory & State Management
-- ✅ Custom Chains
-
-### Streamlit
-- ✅ Session State
-- ✅ Real-time Progress Tracking
-- ✅ Interactive Callbacks
-- ✅ Dynamic Updates
-- ✅ Custom Components
-
-## Troubleshooting
-
-### MCP Server not starting
-- Check that port 8000 is not in use
-- Verify ClinicalTrials.gov API is accessible
-- Review logs in the console
-
-### Agent cannot connect to MCP server
-- Ensure MCP server is running on http://localhost:8000
-- Check `MCP_SERVER_URL` in agent's `.env` file
-- Verify firewall settings
-
-### Gemini API errors
-- Verify `GEMINI_API_KEY` is set correctly
-- Check API quota/rate limits
-- Ensure you're using the correct model name
-
-### UI not updating in real-time
-- Check browser console for WebSocket/SSE errors
-- Verify agent API is accessible at http://localhost:8001
-- Try refreshing the Streamlit page
-
-## Contributing
-
-This project is structured for easy extension:
-
-- **Add new MCP tools**: Create new files in `clinicaltrials-mcp/tools/`
-- **Add new chains**: Create specialized chains in `clinicaltrial-agent/chains/`
-- **Enhance UI**: Add components in `clinicaltrial-ui/components/`
-
-## License
-
-[Your License Here]
-
-## Support
-
-For questions or issues, please refer to the documentation in `.docs/` or create an issue in the repository.
+### 📊 Comparative Analysis
+> *"Compare the enrollment size of the top 3 diabetes studies starting after 2023."*
+The agent fetches multiple studies and synthesizes a comparison.
+---

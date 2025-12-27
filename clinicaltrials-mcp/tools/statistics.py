@@ -21,10 +21,9 @@ async def get_study_size_stats(ctx: Context) -> dict:
     await ctx.info("Retrieving study size statistics")
     
     try:
-        async with api_client:
-            result = await api_client.get_size_stats()
-            await ctx.info("Retrieved study size statistics")
-            return result
+        result = await api_client.get_size_stats()
+        await ctx.info("Retrieved study size statistics")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving size stats: {str(e)}")
@@ -53,13 +52,12 @@ async def get_field_value_stats(
     await ctx.info(f"Retrieving field value statistics for types={field_types}, fields={fields}")
     
     try:
-        async with api_client:
-            result = await api_client.get_field_value_stats(
-                types=field_types,
-                fields=fields
-            )
-            await ctx.info(f"Retrieved statistics for {len(result)} fields")
-            return result
+        result = await api_client.get_field_value_stats(
+            types=field_types,
+            fields=fields
+        )
+        await ctx.info(f"Retrieved statistics for {len(result)} fields")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving field value stats: {str(e)}")
@@ -86,10 +84,9 @@ async def get_list_field_sizes(
     
     try:
         # This endpoint uses the same stats endpoint with different parameters
-        async with api_client:
-            result = await api_client.get("/stats/field/sizes", params={"fields": "|".join(fields)} if fields else None)
-            await ctx.info("Retrieved list field size statistics")
-            return result
+        result = await api_client.get("/stats/field/sizes", params={"fields": "|".join(fields)} if fields else None)
+        await ctx.info("Retrieved list field size statistics")
+        return result
             
     except Exception as e:
         await ctx.error(f"Error retrieving list field sizes: {str(e)}")
