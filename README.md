@@ -1,7 +1,10 @@
 # TrialTalk - Agentic Clinical Trial Intelligence System
 
 ### 🎥 Live Demo
-<video src=".screenshots/demo.mp4" width="100%" controls></video>
+
+
+https://github.com/user-attachments/assets/ee53bdbd-e582-43eb-9ebe-254aa178ebd9
+
 
 A modular **Agentic AI System** designed to revolutionize how researchers and patients access clinical trial data. Powered by **Model Context Protocol (MCP)**, **LangGraph**, and **Google Gemini 2.5**, TrialTalk autonomously navigates the vast registry of [ClinicalTrials.gov](https://clinicaltrials.gov/) to provide evidence-based insights, comparative analysis, and real-time eligibility assessments.
 
